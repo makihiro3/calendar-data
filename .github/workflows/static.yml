@@ -1,10 +1,13 @@
-# Simple workflow for deploying static content to GitHub Pages
+# Workflow for generating calendar data and deploying static content to GitHub Pages
 name: Deploy static content to Pages
 
 on:
   # Runs on pushes targeting the default branch
   push:
     branches: ["main"]
+  # Runs on a schedule 20:00 UTC
+  schedule:
+    - cron: '0 20 * * *'
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -31,13 +34,28 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Download calendar-gen
+        run: |
+          gh release download --repo makihiro3/calendar-gen \
+            --pattern 'calendar-gen-linux-amd64' \
+            --output calendar-gen
+          chmod +x calendar-gen
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Generate calendar data
+        run: |
+          mkdir -p dist
+          cp -f index.html dist/
+          ./calendar-gen dist/ind-cf70270ec79949ab.json \
+            "${{ secrets.CALENDAR_URL_0 }}" \
+            "${{ secrets.CALENDAR_URL_1 }}"
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           # Upload entire repository
-          path: '.'
+          path: 'dist'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
